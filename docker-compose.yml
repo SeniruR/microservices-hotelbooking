@@ -1,0 +1,132 @@
+services:
+  gateway:
+    image: nginx:1.27-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - availability
+      - bookings
+      - notifications
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  mysql-availability:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: availability
+      MYSQL_USER: availability
+      MYSQL_PASSWORD: availability
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "33061:3306"
+    volumes:
+      - mysql_availability_data:/var/lib/mysql
+
+  mysql-bookings:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: bookings
+      MYSQL_USER: bookings
+      MYSQL_PASSWORD: bookings
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "33062:3306"
+    volumes:
+      - mysql_bookings_data:/var/lib/mysql
+
+  mysql-notifications:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: notifications
+      MYSQL_USER: notifications
+      MYSQL_PASSWORD: notifications
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "33063:3306"
+    volumes:
+      - mysql_notifications_data:/var/lib/mysql
+
+  availability:
+    build:
+      context: ./services/availability
+      dockerfile: Dockerfile
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "false"
+      APP_URL: http://localhost:8080/availability
+      DB_CONNECTION: mysql
+      DB_HOST: mysql-availability
+      DB_PORT: 3306
+      DB_DATABASE: availability
+      DB_USERNAME: availability
+      DB_PASSWORD: availability
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_CLIENT: predis
+    volumes:
+      - ./services/availability:/var/www
+    depends_on:
+      - mysql-availability
+      - redis
+
+  bookings:
+    build:
+      context: ./services/bookings
+      dockerfile: Dockerfile
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "false"
+      APP_URL: http://localhost:8080/bookings
+      DB_CONNECTION: mysql
+      DB_HOST: mysql-bookings
+      DB_PORT: 3306
+      DB_DATABASE: bookings
+      DB_USERNAME: bookings
+      DB_PASSWORD: bookings
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_CLIENT: predis
+      AVAILABILITY_BASE_URL: http://availability:8000
+      BOOKING_EVENTS_STREAM: booking-events
+    volumes:
+      - ./services/bookings:/var/www
+    depends_on:
+      - mysql-bookings
+      - redis
+      - availability
+
+  notifications:
+    build:
+      context: ./services/notifications
+      dockerfile: Dockerfile
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "false"
+      APP_URL: http://localhost:8080/notifications
+      DB_CONNECTION: mysql
+      DB_HOST: mysql-notifications
+      DB_PORT: 3306
+      DB_DATABASE: notifications
+      DB_USERNAME: notifications
+      DB_PASSWORD: notifications
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_CLIENT: predis
+      QUEUE_CONNECTION: redis
+      BOOKING_EVENTS_STREAM: booking-events
+      BOOKING_EVENTS_GROUP: notifications
+    volumes:
+      - ./services/notifications:/var/www
+    depends_on:
+      - mysql-notifications
+      - redis
+
+volumes:
+  mysql_availability_data:
+  mysql_bookings_data:
+  mysql_notifications_data:
