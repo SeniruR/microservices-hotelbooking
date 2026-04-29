@@ -68,8 +68,6 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_CLIENT: predis
-    volumes:
-      - ./services/availability:/var/www
     depends_on:
       - mysql-availability
       - redis
@@ -93,8 +91,6 @@ services:
       REDIS_CLIENT: predis
       AVAILABILITY_BASE_URL: http://availability:8000
       BOOKING_EVENTS_STREAM: booking-events
-    volumes:
-      - ./services/bookings:/var/www
     depends_on:
       - mysql-bookings
       - redis
@@ -120,8 +116,6 @@ services:
       QUEUE_CONNECTION: redis
       BOOKING_EVENTS_STREAM: booking-events
       BOOKING_EVENTS_GROUP: notifications
-    volumes:
-      - ./services/notifications:/var/www
     depends_on:
       - mysql-notifications
       - redis
