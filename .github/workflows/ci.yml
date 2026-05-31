@@ -89,16 +89,17 @@ jobs:
           fi
           if [ ! -f .env ]; then
             cat > .env <<'EOF'
-APP_ENV=testing
-APP_DEBUG=true
-APP_KEY=
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=homestead
-DB_USERNAME=homestead
-DB_PASSWORD=secret
-EOF
+            APP_ENV=testing
+            APP_DEBUG=true
+            APP_KEY=
+            DB_CONNECTION=mysql
+            DB_HOST=127.0.0.1
+            DB_PORT=3306
+            DB_DATABASE=homestead
+            DB_USERNAME=homestead
+            DB_PASSWORD=secret
+            EOF
+            sed -i 's/^[[:space:]]\+//' .env || true
           fi
           sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env || true
           sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/' .env || true
