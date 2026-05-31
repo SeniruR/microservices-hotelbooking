@@ -16,6 +16,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Prepare writable directories
+        run: |
+          set -e
+          mkdir -p services/${{ matrix.service }}/bootstrap/cache
+          mkdir -p services/${{ matrix.service }}/storage/framework/{cache,sessions,views}
+          mkdir -p services/${{ matrix.service }}/storage/logs
+          chmod -R 0777 services/${{ matrix.service }}/bootstrap/cache services/${{ matrix.service }}/storage || true
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
