@@ -7,12 +7,21 @@ on:
     branches: [ "main" ]
 
 jobs:
-
   build:
 
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [availability, bookings, notifications]
 
     steps:
     - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+
+    - name: Build service image
+      run: |
+        if [ -f services/${{ matrix.service }}/Dockerfile ]; then
+          echo "Building image for ${{ matrix.service }}"
+          docker build services/${{ matrix.service }} -f services/${{ matrix.service }}/Dockerfile -t my-image-${{ matrix.service }}:${{ github.sha }}
+        else
+          echo "No Dockerfile for ${{ matrix.service }}, skipping"
+        fi
