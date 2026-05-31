@@ -8,6 +8,28 @@ jobs:
   tests:
     name: Tests — ${{ matrix.service }}
     runs-on: ubuntu-latest
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: homestead
+      DB_USERNAME: homestead
+      DB_PASSWORD: secret
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: homestead
+          MYSQL_USER: homestead
+          MYSQL_PASSWORD: secret
+          MYSQL_ROOT_PASSWORD: secret
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
     strategy:
       matrix:
         service: [availability, bookings, notifications]
@@ -28,6 +50,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
+          extensions: mbstring, pdo_mysql, xml
 
       - name: Cache Composer vendor
         uses: actions/cache@v4
@@ -37,6 +60,32 @@ jobs:
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
+        working-directory: services/${{ matrix.service }}
+
+      - name: Wait for MySQL
+        run: |
+          php -r '
+          $tries=0;
+          while($tries<30){
+            try{
+              new PDO("mysql:host=127.0.0.1;port=3306;dbname=homestead","homestead","secret");
+              echo "MySQL is up\n";
+              exit(0);
+            }catch(PDOException $e){
+              $tries++;
+              sleep(1);
+            }
+          }
+          exit(1);
+          '
+        working-directory: services/${{ matrix.service }}
+
+      - name: Generate APP_KEY
+        run: php artisan key:generate --ansi --force
+        working-directory: services/${{ matrix.service }}
+
+      - name: Run migrations
+        run: php artisan migrate --force
         working-directory: services/${{ matrix.service }}
 
       - name: Run PHPUnit
